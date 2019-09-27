@@ -1,5 +1,4 @@
 import sys
-import binascii
 
 MORSE_ALPHABET = {"a": "·−", "b": "−···", "c": "−·−·", "d": "−··",
                   "e": "·", "f": "··−·", "g": "−−·", "h": "····",
@@ -11,6 +10,21 @@ MORSE_ALPHABET = {"a": "·−", "b": "−···", "c": "−·−·", "d": "−·
                   "3": "···−−", "4": "····−", "5": "·····", "6": "−····",
                   "7": "−−···", "8": "−−−··", "9": "−−−−·", "0": "−−−−−",
                   ".": "·−·−·−"}
+
+BAUDOT_LETTER = {"": "00000000", "T": "00000001", "\r": "00000010", "O": "00000011", " ": "00000100",
+         "H": "00000101", "N": "00000110", "M": "00000111", "\n": "00001000", "L": "00001001",
+         "R": "00001010", "G": "00001011", "I": "00001100", "P": "00001101", "C": "00001110",
+         "V": "00001111", "E": "00010000", "Z": "00010001", "D": "00010010", "B": "00010011",
+         "S": "00010100", "Y": "00010101", "F": "00010110", "X": "00010111", "A": "00011000",
+         "W": "00011001", "J": "00011010", "U": "00011100", "Q": "00011101", "K": "00011110" }
+
+BAUDOT_FIGURE = {"": "00000000", "5": "00000001", "\r": "00000010", "9": "00000011", " ": "00000100",
+         "": "00000101", ",": "00000110", ".": "00000111", "\n": "00001000", ")": "00001001",
+         "4": "00001010", "&": "00001011", "8": "00001100", "0": "00001101", ":": "00001110",
+         ";": "00001111", "3": "00010000", "\"": "00010001", "$": "00010010", "?": "00010011",
+         "\a": "00010100", "6": "00010101", "!": "00010110", "/": "00010111", "-": "00011000",
+         "2": "00011001", "\'": "00011010", "7": "00011100", "1": "00011101", "(": "00011110" }
+SPECIAL_CASE = ["", "\r"," ","\n"]
 
 def string2morse(string):
     output = ""
@@ -31,7 +45,7 @@ def string2morse(string):
 
 def morse2string(morse_code):
     output = ""
-    morse_code = \
+    #morse_code = \
     morse_code.replace(".", "·").replace("-", "−").replace("_", "−")
 
     morse = {v: k for k, v in MORSE_ALPHABET.items()}
@@ -46,8 +60,56 @@ def morse2string(morse_code):
     space = space.join(new)  
     return space
 
+def string2baudot (string):
+  output = ""
+  previous = ""
+  for char in string.upper():
+    if not previous:
+      temp = BAUDOT_LETTER.get(char, "")
+      if char in SPECIAL_CASE:
+        output += temp
+      if not temp:
+        output += "00011011" + BAUDOT_FIGURE.get(char, "")
+      else:
+        output += "00011111" + temp
+    else:
+      temp = BAUDOT_LETTER.get(char, "")
+      check = BAUDOT_LETTER.get(previous, "")
+      if char in SPECIAL_CASE:
+        output += temp
+      elif not check:
+        if not temp:
+          output += BAUDOT_FIGURE.get(char, "")
+        else:
+          output += "00011111" + temp
+      else:
+        if not temp:
+          output += "00011011" + BAUDOT_FIGURE.get(char, "")
+        else:
+          output += temp
+    if char not in SPECIAL_CASE:
+      previous = char 
+  return output
 
-#f = open('testing.txt')
+def baudot2string(baudot_code):
+  output = ""
+  convert = [baudot_code[i:i+8] for i in range(0, len(baudot_code), 8)]
+  letter = {v: k for k, v in BAUDOT_LETTER.items()}
+  figure = {x: y for y, x in BAUDOT_FIGURE.items()}
+  check = "default"
+  for i in range(len(convert)):
+    if(convert[i] == "00011011"):
+      check = "figure"
+    elif (convert[i] == "00011111"):
+      check = "letter"
+    else:
+      if(check == "figure"):
+        output += figure.get(convert[i], "")
+      else:
+        output += letter.get(convert[i], "")
+  return output
+
+
 if __name__ == '__main__':
   print("FYI: Input for type has to be following:\n 1. UTF-8\n 2. UTF-32\n 3. Baudot code\n 4. Morse code\n")
   namefile = input("Enter file name with .txt: ") 
@@ -61,56 +123,32 @@ if __name__ == '__main__':
     for line in fo:
       inputstring += morse2string(line)
 
-  if(typein == "UTF-32"):
+  elif(typein == "UTF-32"):
     fo = open(namefile, 'rb')
     for line in fo:
       inputstring += line.decode(encoding='UTF-8', errors = 'ignore')
 
-  #if(typein == "Baudot code"):
+  elif(typein == "Baudot code"):
+    for line in fo:
+      inputstring += baudot2string(line)
 
   else: 
     for line in fo: 
       inputstring += line
 
   myfile = open('output.txt', 'w')
+
   if(typeout == "Morse code"):
     myfile.write(string2morse(inputstring))
 
-  if(typeout == "UTF-32"):
+  elif(typeout == "UTF-32"):
     myfile = open('output.txt','wb')
     myfile.write(inputstring.encode(encoding='UTF-32', errors = 'ignore'))    
 
-  if(typeout == "Baudot code"):
+  elif(typeout == "Baudot code"):
     myfile = open('output.txt', 'w')
-    myfile.write(binascii.a2b_uu(inputstring))
+    myfile.write(string2baudot(inputstring))
   else: 
     myfile.write(inputstring)
-  # if ((typein == "UTF-8") and (typeout == "Morse code")):
-  #   fo = open(namefile, 'r')
-  #   myfile = open('utf8_to_morse_output.txt', 'w')
-  #   for line in fo:
-  #     myfile.write(string2morse(line))
-
-  # if ((typein == "Morse code") and (typeout == "UTF-8")):
-  #   fo = open(namefile, 'r')
-  #   myfile = open('morse_to_utf8_output.txt', 'w')
-  #   for line in fo:
-  #     myfile.write(morse2string(line))
-
-  # if ((typein == "UTF-8") and (typeout == "UTF-32")):
-  #   fo = open(namefile, 'r')
-  #   myfile = open('utf8_to_utf32_output.txt', 'wb')
-  #   for line in fo: 
-  #     myfile.write(line.encode(encoding='UTF-32', errors = 'ignore'))
-
-  # if ((typein == "UTF-32") and (typeout == "UTF-8")):
-  #   fo = open(namefile, 'rb')
-  #   myfile = open('utf32_to_utf8_output.txt', 'w')
-  #   for line in fo:
-  #     myfile.write(line.decode(encoding='UTF-8', errors = 'ignore'))    
-      
-  # if ((typein == "Morse code") and (typeout == "UTF-32")):
-  #   fo = open(namefile, 'r')
-  #   myfile = open('morse_to_utf32_output.txt', 'wb')
-
+  
   fo.close()
