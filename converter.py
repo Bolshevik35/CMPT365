@@ -126,7 +126,7 @@ if __name__ == '__main__':
   elif(typein == "UTF-32"):
     fo = open(namefile, 'rb')
     for line in fo:
-      inputstring += line.decode(encoding='UTF-8', errors = 'ignore')
+      inputstring += line.decode(encoding='UTF-8', errors = 'strict')
 
   elif(typein == "Baudot code"):
     for line in fo:
@@ -136,7 +136,7 @@ if __name__ == '__main__':
     for line in fo: 
       inputstring += line
 
-  myfile = open('output.txt', 'w')
+  myfile = open('output1.txt', 'w')
 
   if(typeout == "Morse code"):
     myfile.write(string2morse(inputstring))
